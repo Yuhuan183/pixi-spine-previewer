@@ -143,6 +143,8 @@ git push --follow-tags
 
 `release.yml` sees `package.json` change, builds the macOS bundle on `macos-latest` (Apple Silicon) and the NSIS installer on `windows-latest` (x64), signs the updater artifacts, and opens a **draft** GitHub Release `vX.Y.Z` with the `.dmg`, `-setup.exe`, their `.sig` files and `latest.json`. Publish the draft once you have checked it; the in-app updater only ever sees published releases. `workflow_dispatch` builds the current version on demand.
 
+Publishing is not optional housekeeping. A draft has no git tag, so its assets sit behind an `untagged-…` URL while `latest.json` already points at `releases/download/vX.Y.Z/`. Those links only resolve once the draft is published and the tag is created.
+
 The workflow needs two repository secrets, both produced by `npx tauri signer generate -w ~/.tauri/spine-previewer.key`:
 
 | Secret | Content |

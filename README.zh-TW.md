@@ -143,6 +143,8 @@ git push --follow-tags
 
 `release.yml` 看到 `package.json` 版號變了, 就在 `macos-latest` (Apple Silicon) 打 macOS bundle、在 `windows-latest` (x64) 打 NSIS 安裝檔, 對 updater 產物簽章, 然後開一個 **draft** GitHub Release `vX.Y.Z`, 裡面有 `.dmg`、`-setup.exe`、各自的 `.sig` 與 `latest.json`. 檢查過再按 Publish; app 內的更新只看已發布的 release. `workflow_dispatch` 可以隨時對目前版號重打一次.
 
+Publish 不是可有可無的收尾. Draft 還沒有 git tag, 它的檔案掛在 `untagged-…` 網址下, 而 `latest.json` 已經指向 `releases/download/vX.Y.Z/`. 那些連結要等 draft 發布、tag 建立之後才會有效.
+
 Workflow 需要兩個 repository secrets, 都由 `npx tauri signer generate -w ~/.tauri/spine-previewer.key` 產生:
 
 | Secret | 內容 |
