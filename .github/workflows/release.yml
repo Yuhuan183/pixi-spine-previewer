@@ -1,0 +1,76 @@
+# A version bump on main is the release trigger: `npm version patch|minor` bumps package.json
+# (scripts/sync-version.mjs mirrors it into the Tauri config) and pushing that commit builds
+# both desktop bundles and opens a draft GitHub Release. Publishing the draft is a manual step,
+# and the in-app updater only ever sees published releases.
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+      version: ${{ steps.diff.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: diff
+        shell: bash
+        run: |
+          current=$(node -p "require('./package.json').version")
+          previous=$(git show HEAD~1:package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" 2>/dev/null || true)
+          changed=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || { [ -n "$previous" ] && [ "$current" != "$previous" ]; }; then
+            changed=true
+          fi
+          echo "version=$current" >> "$GITHUB_OUTPUT"
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "package.json version: ${previous:-none} -> $current (release: $changed)"
+
+  build:
+    needs: version
+    if: needs.version.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest # Apple Silicon runner → aarch64-apple-darwin
+            args: --bundles app,dmg
+          - os: windows-latest # x64 runner → x86_64-pc-windows-msvc
+            args: --bundles nsis
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci --no-audit --no-fund
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Spine Previewer v__VERSION__
+          releaseBody: 'macOS (Apple Silicon): .dmg · Windows (x64): -setup.exe'
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+          # Absolute path: the Tauri CLI resolves a relative --config against its own working
+          # directory, which differs between local runs and the action.
+          args: --config ${{ github.workspace }}/src-tauri/tauri.release.conf.json ${{ matrix.args }}

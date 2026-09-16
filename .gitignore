@@ -1,0 +1,15 @@
+# Dependencies and build output (local bundles land under src-tauri/target/)
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Local environment, editors, OS noise
+.claude/
+.DS_Store
+*.local
+*.log
+.env
+.env.*
+.vscode/
+.idea/

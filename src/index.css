@@ -1,0 +1,110 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-app: #0b0d12;
+  --color-panel: #101219;
+  --color-elevated: #161922;
+  --color-raised: #1d2130;
+  --color-line: #242938;
+  --color-line-soft: #1b1f2b;
+  --color-ink: #e7eaf2;
+  --color-muted: #8d95ab;
+  --color-dim: #5b6379;
+  --color-accent: #38bdf8;
+  --color-accent-soft: #0f2c3d;
+  --color-active: #fbbf24;
+  --color-danger: #f87171;
+  --color-ok: #34d399;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-app);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+  }
+
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2a2f40;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a4257;
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /* Drag handle between the rails and the viewport. Widened hit area, hairline visual. */
+  .rail-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 9px;
+    cursor: col-resize;
+    z-index: 20;
+  }
+
+  .rail-handle::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 4px;
+    width: 1px;
+    background: var(--color-line);
+    transition: background 120ms ease;
+  }
+
+  .rail-handle:hover::after,
+  .rail-handle[data-dragging='true']::after {
+    background: var(--color-accent);
+  }
+
+  .titlebar-drag {
+    -webkit-app-region: drag;
+  }
+
+  .titlebar-nodrag {
+    -webkit-app-region: no-drag;
+  }
+}

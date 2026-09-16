@@ -1,0 +1,62 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Spine Previewer",
+  "version": "0.1.0",
+  "identifier": "io.github.yuhuan183.spine-previewer",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5178",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build:web"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Spine Previewer",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 960,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "backgroundColor": "#0b0d12",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost; worker-src 'self' blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "dmg",
+      "app",
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "android": {
+      "debugApplicationIdSuffix": ".debug"
+    },
+    "copyright": "© 2026 Yuhuan",
+    "category": "DeveloperTool",
+    "macOS": {
+      "minimumSystemVersion": "13.0"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5OTZDQjJDMUFCM0Q1NzAKUldSdzFiTWFMTXVXbVkwRkI3emRQTGhQdy9yK3lpcE1WUHZkR1BtZlRUdG54OU5PQjkzRkc1bkUK",
+      "endpoints": [
+        "https://github.com/Yuhuan183/pixi-spine-previewer/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}
