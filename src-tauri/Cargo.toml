@@ -1,6 +1,6 @@
 [package]
 name = "spine-previewer"
-version = "0.1.0"
+version = "0.1.1"
 description = "Spine 4.3 previewer desktop shell"
 authors = ["Yuhuan"]
 license = "UNLICENSED"

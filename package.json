@@ -2,7 +2,7 @@
   "name": "pixi-spine-previewer",
   "productName": "Spine Previewer",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spine 4.3 skeleton previewer built on PixiJS 8 — desktop (Tauri v2) and browser.",
   "author": "Yuhuan",
   "license": "UNLICENSED",
