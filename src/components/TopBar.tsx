@@ -26,11 +26,14 @@ export function TopBar({
 
   return (
     <header
-      className="titlebar-drag flex h-11 shrink-0 items-center gap-2 border-b border-line bg-panel px-3"
+      className="flex h-11 shrink-0 items-center gap-2 border-b border-line bg-panel px-3"
       style={isMacDesktop ? { paddingLeft: 78 } : undefined}
-      data-tauri-drag-region
+      // `deep`, not a bare attribute: bare means only a hit on the header element itself
+      // drags, and the labels and badges covering it would leave the window barely movable.
+      // Tauri excludes buttons and links from the subtree on its own.
+      data-tauri-drag-region="deep"
     >
-      <div className="titlebar-nodrag flex items-center gap-2">
+      <div className="flex items-center gap-2">
         {compact ? (
           <ToolButton title="資源列表" onClick={() => onToggleDrawer('left')}>
             <IconFolder />
@@ -39,7 +42,7 @@ export function TopBar({
         <span className="text-[13px] font-semibold tracking-tight text-ink">Spine Previewer</span>
       </div>
 
-      <div className="titlebar-nodrag ml-1 flex items-center gap-1">
+      <div className="ml-1 flex items-center gap-1">
         <ToolButton title="選擇來源目錄 (⌘O)" onClick={() => void openDirectory()}>
           <IconFolder />
           {compact ? null : '開啟目錄'}
@@ -53,7 +56,7 @@ export function TopBar({
         {root?.path ?? '尚未選擇來源目錄'}
       </p>
 
-      <div className="titlebar-nodrag flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         {updateVersion ? (
           <button
             type="button"

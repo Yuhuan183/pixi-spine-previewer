@@ -99,12 +99,4 @@
   .rail-handle[data-dragging='true']::after {
     background: var(--color-accent);
   }
-
-  .titlebar-drag {
-    -webkit-app-region: drag;
-  }
-
-  .titlebar-nodrag {
-    -webkit-app-region: no-drag;
-  }
 }
