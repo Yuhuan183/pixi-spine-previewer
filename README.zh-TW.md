@@ -25,6 +25,7 @@
 - **資訊面板.** 匯出版本、hash、atlas 分頁、各項統計、骨骼、插槽、事件定義, 與即時事件紀錄.
 - **版本探測.** 解析前先從檔頭讀出匯出版本, 3.8 的檔案會得到一句清楚的訊息, 不是解析器的內部錯誤.
 - **截圖.** 輸出目前影格的透明背景 PNG, 不含格線與輔助線.
+- **自動更新.** 桌面版啟動時檢查 GitHub release, 有新版就在頂列顯示徽章; 瀏覽器模式不顯示.
 - **瀏覽器模式.** 同一套介面可以在瀏覽器分頁裡跑, 走 File System Access API.
 
 ## 環境需求
@@ -83,6 +84,7 @@ http://localhost:5178/?devfs=/絕對/路徑/到/spine
 | 顯示 | 背景色 / 格線 / 原點 / 邊界框 / 除錯繪製 |
 | 載入參數 | 骨架縮放 · 預乘 Alpha · 貼圖濾波 · dark tint, 調整後自動重載 |
 | 截圖 | 輸出透明背景 PNG, 不含格線與輔助線 |
+| 更新 | 有新版時頂列出現徽章; 應用選單的「檢查更新…」(macOS 以外在「檔案」選單) 可隨時手動檢查 |
 
 在 app 裡按 `?` 可查看快捷鍵.
 
@@ -166,6 +168,12 @@ npx tauri build --config "$PWD/src-tauri/tauri.release.conf.json" --bundles app,
 
 `ci.yml` 在每次 push 到 `main` 與每個 pull request 跑 `typecheck` · `lint` · `build:web`, 不需要 secrets.
 
+### App 怎麼自己更新
+
+打包後的 app 在啟動三秒後去讀 `releases/latest/download/latest.json`, 用編進程式裡的公鑰驗證下載內容, 換好新版後重新啟動. 啟動時的檢查失敗不會有任何提示, 因為網路不穩不值得打斷工作; 從選單發起的檢查則會回報每一種結果, 包含「目前是最新版本」.
+
+更新只提示不強制: 徽章要按了才動作, 按「稍後」就安靜到下次啟動. Windows 走 NSIS 安裝檔的 passive 模式, 會有進度視窗但不用一路按下一步.
+
 ### Windows
 
 CI 是正規路徑: NSIS 安裝檔由 `release.yml` 在真的 Windows runner 上產出.
@@ -218,7 +226,7 @@ npm run package:win:cross   # 首次會下載約 1 GB 的 MSVC CRT 與 Windows S
 │   │   ├── useAppStore.ts    應用狀態與動作; 持久化介面偏好
 │   │   ├── useRuntimeStore.ts  每秒 20 次的舞台快照 (fps、zoom、軌道、邊界)
 │   │   └── stage.ts          PreviewStage 單例與資源掛載 / 釋放
-│   ├── components/           React 介面: 頂列、資源列表、視口、時間軸、設定分頁
+│   ├── components/           React 介面: 頂列、資源列表、視口、時間軸、設定分頁、更新對話框
 │   ├── hooks/                版面斷點、側欄拖曳
 │   ├── lib/                  格式化工具
 │   └── dev/devHost.ts        只在 ?devfs= 時啟用的 dev 宿主

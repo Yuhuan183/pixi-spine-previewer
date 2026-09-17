@@ -1,7 +1,38 @@
 import type { ScannedFile, SourceRoot } from '@/core/types';
 
 /** Commands the desktop menu can send down; the browser bridge never emits any. */
-export type HostCommand = 'open' | 'rescan';
+export type HostCommand = 'open' | 'rescan' | 'check-update';
+
+/** A release newer than the running build, as reported by the update endpoint. */
+export interface UpdateInfo {
+  version: string;
+  currentVersion: string;
+  /** Release notes; empty for releases published without a body. */
+  notes: string | null;
+  /** Publication date as the endpoint spelled it, or null when it omitted one. */
+  date: string | null;
+}
+
+export interface UpdateProgress {
+  downloaded: number;
+  /** Null until the server reports a content length, which it may never do. */
+  total: number | null;
+}
+
+/**
+ * Self-update, offered only by hosts that can replace their own binary. A browser tab
+ * cannot, so `PreviewerBridge.updates` is null there and the UI hides every update control
+ * rather than showing one that would fail.
+ */
+export interface UpdateChannel {
+  /** Queries the release endpoint; resolves to null when the running build is current. */
+  check(): Promise<UpdateInfo | null>;
+  /**
+   * Installs the update found by the last successful `check`, reporting download progress.
+   * The app restarts on success, so this resolves only if the restart itself is deferred.
+   */
+  installAndRelaunch(onProgress: (progress: UpdateProgress) => void): Promise<void>;
+}
 
 export interface ScanResult {
   files: ScannedFile[];
@@ -30,6 +61,8 @@ export interface PreviewerBridge {
   initialRoot(): Promise<SourceRoot | null>;
   /** Fires when the host's own UI (menu bar, accelerator) issues a command. */
   onHostCommand(handler: (command: HostCommand) => void): () => void;
+  /** Null on hosts that cannot replace their own binary. */
+  readonly updates: UpdateChannel | null;
 }
 
 /** Extension allow-list for the directory walk; keeps the payload to spine-shaped files. */

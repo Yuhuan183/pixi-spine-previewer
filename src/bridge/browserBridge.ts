@@ -171,6 +171,9 @@ export function createBrowserBridge(): PreviewerBridge {
     onHostCommand() {
       return () => {};
     },
+
+    // A tab cannot replace the binary it is served from.
+    updates: null,
   };
 
   async function resolveFile(file: ScannedFile): Promise<File> {

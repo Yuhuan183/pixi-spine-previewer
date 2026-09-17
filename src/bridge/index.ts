@@ -14,4 +14,4 @@ export const bridge: PreviewerBridge = '__TAURI_INTERNALS__' in window
     ? createInjectedHostBridge(window.previewerHost)
     : createBrowserBridge();
 
-export type { PreviewerBridge, ScanResult } from './types';
+export type { PreviewerBridge, ScanResult, UpdateChannel, UpdateInfo, UpdateProgress } from './types';

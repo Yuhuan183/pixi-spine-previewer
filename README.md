@@ -25,6 +25,7 @@ The shell is Tauri v2, so the installer is about 15 MB and uses the system webvi
 - **Inspector.** Exporter version, hash, atlas pages, counts, bones, slots, events, and a live event log.
 - **Version probe.** Reads the exporter version from the file header before parsing, so a 3.8 export produces a clear message instead of a parser stack trace.
 - **Screenshot.** Transparent PNG of the current frame without grid or helpers.
+- **Self-update.** The desktop build checks the GitHub release feed on launch and offers the update behind a badge; browser mode hides it.
 - **Browser mode.** The same UI runs in a plain browser tab through the File System Access API.
 
 ## Requirements
@@ -83,6 +84,7 @@ Files are served by the `/__dev-fs` endpoints of the Vite dev server. Both endpo
 | Display | Background / grid / origin / bounds box / debug overlays |
 | Load parameters | Skeleton scale · premultiplied alpha · texture filter · dark tint; the asset reloads automatically |
 | Screenshot | Transparent PNG without grid or helper lines |
+| Update | A badge appears in the top bar when a newer release exists; **Check for Updates…** in the application menu (File menu off macOS) checks on demand |
 
 Press `?` in the app for the keyboard shortcuts.
 
@@ -166,6 +168,12 @@ npx tauri build --config "$PWD/src-tauri/tauri.release.conf.json" --bundles app,
 
 `ci.yml` runs `typecheck` · `lint` · `build:web` on every push to `main` and every pull request; it needs no secrets.
 
+### How the app updates itself
+
+The packaged app checks `releases/latest/download/latest.json` three seconds after launch, verifies the download against the public key compiled into it, and restarts once the new bundle is in place. A failed startup check stays silent, because a network blip is not worth interrupting for; a check started from the menu reports every outcome, including "already current".
+
+Updates are offered, never forced: the badge waits for a click, and **Later** keeps the prompt quiet until the next launch. Windows installs through its NSIS installer in passive mode, so there is a progress window but nothing to click through.
+
 ### Windows
 
 CI is the canonical path: the NSIS installer comes out of `release.yml` on a real Windows runner.
@@ -218,7 +226,7 @@ npm run package:win:cross   # first run downloads about 1 GB of MSVC CRT and Win
 │   │   ├── useAppStore.ts    App state and actions; persists UI preferences
 │   │   ├── useRuntimeStore.ts  20 Hz stage snapshot (fps, zoom, tracks, bounds)
 │   │   └── stage.ts          PreviewStage singleton and asset mount / dispose
-│   ├── components/           React UI: top bar, library, viewport, timeline, inspector tabs
+│   ├── components/           React UI: top bar, library, viewport, timeline, inspector tabs, update dialog
 │   ├── hooks/                Layout breakpoints, rail resize
 │   ├── lib/                  Formatting helpers
 │   └── dev/devHost.ts        Dev-only host behind ?devfs=

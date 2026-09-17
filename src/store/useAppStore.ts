@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { bridge } from '@/bridge';
+import { bridge, type UpdateInfo } from '@/bridge';
 import { inspectSkeleton, type SkeletonInfo } from '@/core/inspect';
 import { DEFAULT_LOAD_OPTIONS, loadSpineAsset, type LoadOptions } from '@/core/loadSpine';
 import { groupSpineAssets } from '@/core/scanner';
@@ -13,6 +13,34 @@ import { useRuntimeStore } from './useRuntimeStore';
 
 const EVENT_LOG_LIMIT = 200;
 export const TRACK_COUNT = 3;
+
+/**
+ * Download progress arrives once per chunk, which is far more often than a progress bar can
+ * show. Coalescing keeps a 3 MB download from queueing hundreds of renders.
+ */
+const PROGRESS_THROTTLE_MS = 100;
+
+export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'current' | 'error';
+
+export interface UpdateState {
+  status: UpdateStatus;
+  info: UpdateInfo | null;
+  downloaded: number;
+  /** Null until the server reports a content length. */
+  total: number | null;
+  error: string | null;
+  /** The modal; `available` without it is the quiet state where only the badge shows. */
+  dialogOpen: boolean;
+}
+
+const IDLE_UPDATE: UpdateState = {
+  status: 'idle',
+  info: null,
+  downloaded: 0,
+  total: null,
+  error: null,
+  dialogOpen: false,
+};
 
 /**
  * Load options are driven by sliders, and each change costs a full re-read and re-parse of
@@ -52,6 +80,7 @@ interface AppState {
   loadOptions: LoadOptions;
   leftWidth: number;
   rightWidth: number;
+  update: UpdateState;
 
   openDirectory: () => Promise<void>;
   reopenRecent: (path: string) => Promise<void>;
@@ -78,6 +107,12 @@ interface AppState {
   pushEvent: (line: SpineEventLine) => void;
   clearEvents: () => void;
   setPanelWidth: (side: 'left' | 'right', width: number) => void;
+
+  /** `manual` opens the dialog straight away and reports "already current" and failures. */
+  checkForUpdate: (manual: boolean) => Promise<void>;
+  installUpdate: () => Promise<void>;
+  openUpdateDialog: () => void;
+  closeUpdateDialog: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -112,6 +147,7 @@ export const useAppStore = create<AppState>()(
       loadOptions: { ...DEFAULT_LOAD_OPTIONS },
       leftWidth: 288,
       rightWidth: 340,
+      update: { ...IDLE_UPDATE },
 
       async openDirectory() {
         const root = await bridge.pickDirectory();
@@ -365,6 +401,77 @@ export const useAppStore = create<AppState>()(
 
       setPanelWidth(side, width) {
         set(side === 'left' ? { leftWidth: width } : { rightWidth: width });
+      },
+
+      async checkForUpdate(manual) {
+        const channel = bridge.updates;
+        const { status } = get().update;
+
+        if (!channel || status === 'checking' || status === 'downloading') return;
+        // The startup check must not reset an update the user has already been offered.
+        if (!manual && status !== 'idle') return;
+
+        set({ update: { ...IDLE_UPDATE, status: 'checking', dialogOpen: manual } });
+
+        try {
+          const info = await channel.check();
+
+          set((state) => ({
+            update: { ...state.update, status: info ? 'available' : 'current', info },
+          }));
+        } catch (error) {
+          // A failed startup check is a network blip, not something worth interrupting for.
+          set((state) => ({
+            update: manual
+              ? { ...state.update, status: 'error', error: (error as Error).message }
+              : { ...IDLE_UPDATE },
+          }));
+        }
+      },
+
+      async installUpdate() {
+        const channel = bridge.updates;
+
+        if (!channel || get().update.status !== 'available') return;
+
+        set((state) => ({ update: { ...state.update, status: 'downloading', dialogOpen: true } }));
+
+        let lastPublishedAt = 0;
+
+        try {
+          await channel.installAndRelaunch(({ downloaded, total }) => {
+            const now = performance.now();
+            const complete = total !== null && downloaded >= total;
+
+            if (!complete && now - lastPublishedAt < PROGRESS_THROTTLE_MS) return;
+
+            lastPublishedAt = now;
+            set((state) => ({ update: { ...state.update, downloaded, total } }));
+          });
+        } catch (error) {
+          set((state) => ({
+            update: { ...state.update, status: 'error', error: (error as Error).message },
+          }));
+        }
+      },
+
+      openUpdateDialog() {
+        set((state) => ({ update: { ...state.update, dialogOpen: true } }));
+      },
+
+      closeUpdateDialog() {
+        // Guarded here rather than only in the dialog, so no caller can strand an install.
+        if (get().update.status === 'downloading') return;
+
+        set((state) => ({
+          update: {
+            ...state.update,
+            dialogOpen: false,
+            // Dismissing a finished check clears it; an offered update stays on the badge.
+            status: state.update.status === 'available' ? 'available' : 'idle',
+            error: null,
+          },
+        }));
       },
     }),
     {

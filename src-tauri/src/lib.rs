@@ -253,7 +253,19 @@ fn resolve_cli_root(app: &tauri::AppHandle, allowed: &Allowed) -> Option<String>
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
     let open = MenuItemBuilder::new("開啟目錄…").id("open").accelerator("CmdOrCtrl+O").build(app)?;
     let rescan = MenuItemBuilder::new("重新掃描").id("rescan").accelerator("CmdOrCtrl+R").build(app)?;
-    let file = SubmenuBuilder::new(app, "檔案").items(&[&open, &rescan]).separator().close_window().build()?;
+    let check_update = MenuItemBuilder::new("檢查更新…").id("check-update").build(app)?;
+
+    #[allow(unused_mut)]
+    let mut file = SubmenuBuilder::new(app, "檔案").items(&[&open, &rescan]).separator();
+
+    // macOS keeps "check for updates" in the application menu; every other platform expects
+    // it under File.
+    #[cfg(not(target_os = "macos"))]
+    {
+        file = file.item(&check_update).separator();
+    }
+
+    let file = file.close_window().build()?;
     let view = SubmenuBuilder::new(app, "檢視").fullscreen().build()?;
     let window = SubmenuBuilder::new(app, "視窗").minimize().build()?;
     let mut menu = MenuBuilder::new(app);
@@ -262,6 +274,8 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
     {
         let about = SubmenuBuilder::new(app, "Spine Previewer")
             .about(None)
+            .separator()
+            .item(&check_update)
             .separator()
             .hide()
             .hide_others()
@@ -281,6 +295,7 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
         .manage(Allowed::default())
         .manage(InitialRoot(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
@@ -291,6 +306,11 @@ pub fn run() {
             initial_root
         ])
         .setup(|app| {
+            // Self-update only exists on desktop, and only the packaged build can replace
+            // its own bundle.
+            #[cfg(desktop)]
+            app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -314,6 +334,7 @@ pub fn run() {
             let command = match event.id().as_ref() {
                 "open" => "open",
                 "rescan" => "rescan",
+                "check-update" => "check-update",
                 _ => return,
             };
 

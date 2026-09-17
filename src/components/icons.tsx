@@ -170,3 +170,11 @@ export const IconKeyboard = (p: IconProps) => (
     <path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8" />
   </Icon>
 );
+
+export const IconDownload = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 4v11" />
+    <path d="m8 11 4 4 4-4" />
+    <path d="M5 19h14" />
+  </Icon>
+);

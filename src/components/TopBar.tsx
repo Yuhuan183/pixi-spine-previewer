@@ -2,7 +2,7 @@ import { bridge } from '@/bridge';
 import type { Layout } from '@/hooks/useLayout';
 import { useAppStore } from '@/store/useAppStore';
 
-import { IconFolder, IconInfo, IconKeyboard, IconLayers, IconRefresh } from './icons';
+import { IconDownload, IconFolder, IconInfo, IconKeyboard, IconLayers, IconRefresh } from './icons';
 import { Badge, ToolButton } from './ui';
 
 const isMacDesktop = bridge.kind === 'tauri' && bridge.platform === 'darwin';
@@ -20,6 +20,8 @@ export function TopBar({
   const scanning = useAppStore((state) => state.scanning);
   const openDirectory = useAppStore((state) => state.openDirectory);
   const rescan = useAppStore((state) => state.rescan);
+  const updateVersion = useAppStore((state) => (state.update.status === 'available' ? state.update.info?.version : null));
+  const openUpdateDialog = useAppStore((state) => state.openUpdateDialog);
   const compact = layout === 'compact';
 
   return (
@@ -52,6 +54,17 @@ export function TopBar({
       </p>
 
       <div className="titlebar-nodrag flex items-center gap-1.5">
+        {updateVersion ? (
+          <button
+            type="button"
+            onClick={openUpdateDialog}
+            title={`可更新到 ${updateVersion}`}
+            className="inline-flex items-center gap-1 rounded border border-ok/40 bg-ok/10 px-1.5 py-px font-mono text-[10px] leading-4 whitespace-nowrap text-ok hover:bg-ok/20"
+          >
+            <IconDownload width={11} height={11} />
+            {updateVersion}
+          </button>
+        ) : null}
         <Badge>Pixi {__APP_VERSIONS__.pixi}</Badge>
         <Badge tone="accent">Spine {__APP_VERSIONS__.spine}</Badge>
         {bridge.kind === 'tauri' ? null : <Badge tone="warn">瀏覽器模式</Badge>}

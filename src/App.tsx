@@ -12,10 +12,14 @@ import { ShortcutsDialog } from './components/ShortcutsDialog';
 import { Timeline } from './components/Timeline';
 import { TopBar } from './components/TopBar';
 import { cx } from './components/ui';
+import { UpdateDialog } from './components/UpdateDialog';
 import { Viewport } from './components/Viewport';
 
 /** Docked rails get tighter caps on smaller windows so the canvas never loses the stage. */
 const MEDIUM_CAPS = { left: 300, right: 330 };
+
+/** Lets the first scan finish before the update check competes for the network. */
+const UPDATE_CHECK_DELAY_MS = 3000;
 
 export function App() {
   const { layout, short } = useLayout();
@@ -48,12 +52,20 @@ export function App() {
     const stopHostCommands = bridge.onHostCommand((command) => {
       const store = useAppStore.getState();
 
-      void (command === 'open' ? store.openDirectory() : store.rescan());
+      if (command === 'check-update') void store.checkForUpdate(true);
+      else void (command === 'open' ? store.openDirectory() : store.rescan());
     });
+
+    // Silent on this path: a startup check that fails is a network blip, and the result only
+    // ever shows up as the badge in the top bar.
+    const updateTimer = bridge.updates
+      ? setTimeout(() => void useAppStore.getState().checkForUpdate(false), UPDATE_CHECK_DELAY_MS)
+      : null;
 
     return () => {
       cancelled = true;
       stopHostCommands();
+      if (updateTimer) clearTimeout(updateTimer);
     };
   }, []);
 
@@ -61,6 +73,7 @@ export function App() {
   const dismiss = useCallback(() => {
     setShortcutsOpen(false);
     setDrawer(null);
+    useAppStore.getState().closeUpdateDialog();
   }, []);
 
   useShortcuts(toggleHelp, dismiss);
@@ -108,6 +121,7 @@ export function App() {
       </div>
 
       {shortcutsOpen ? <ShortcutsDialog onClose={() => setShortcutsOpen(false)} /> : null}
+      <UpdateDialog />
     </div>
   );
 }

@@ -53,5 +53,8 @@ export function createInjectedHostBridge(host: PreviewerHostApi): PreviewerBridg
     onHostCommand(handler) {
       return host.onCommand(handler);
     },
+
+    // The dev host serves the app from Vite; there is no bundle to replace.
+    updates: null,
   };
 }
